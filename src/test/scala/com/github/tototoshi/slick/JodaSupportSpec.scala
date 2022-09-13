@@ -198,6 +198,35 @@ abstract class JodaSupportSpec extends AnyFunSpec
     }
   }
 
+  it("should be the same in/out joda-time which is not the same timezone against the global setting") {
+    val utcDateTime = new DateTime(2012, 12, 7, 0, 0, 0, 0, DateTimeZone.UTC)
+    val data = Jodas(
+      DateTimeZone.forID("Asia/Tokyo"),
+      new LocalDate(2012, 12, 7),
+      utcDateTime,
+      new DateTime(2012, 12, 7, 0, 0, 0, 0, DateTimeZone.UTC).toInstant,
+      new LocalDateTime(2012, 12, 7, 0, 0, 0, 0),
+      new LocalTime(1000),
+      None,
+      None,
+      None,
+      None,
+      None,
+      None
+    )
+
+    db.run(
+      jodaTest += data
+    ).await()
+
+    val actual = db.run(jodaTest.result).await()
+    actual should have size 1
+
+    actual.foreach { d =>
+      d.dateTime.getMillis should be(data.dateTime.getMillis)
+    }
+  }
+
   it("can be used with comparative operators") {
     db.run(insertTestData()).await()
     val q1 = jodaTest.filter(_.localDate > new LocalDate(2012, 12, 5))
