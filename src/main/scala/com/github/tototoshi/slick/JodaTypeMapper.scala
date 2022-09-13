@@ -32,7 +32,7 @@ import slick.jdbc.JdbcProfile
 import org.joda.time._
 import com.github.tototoshi.slick.converter._
 import java.sql._
-import java.util.Calendar
+import java.util.{ Calendar, TimeZone }
 import slick.jdbc.{ PositionedResult, PositionedParameters }
 
 class JodaDateTimeZoneMapper(val driver: JdbcProfile) {
@@ -104,7 +104,7 @@ class JodaDateTimeMapper(val driver: JdbcProfile, setTimeZone: DateTime => Optio
       }
     }
     override def getValue(r: ResultSet, idx: Int): DateTime =
-      fromSqlType(r.getTimestamp(idx))
+      fromSqlType(r.getTimestamp(idx, Calendar.getInstance(TimeZone.getTimeZone("UTC"))))
     override def updateValue(v: DateTime, r: ResultSet, idx: Int): Unit =
       r.updateTimestamp(idx, toSqlType(v))
     override def valueToSQLLiteral(value: DateTime) =
