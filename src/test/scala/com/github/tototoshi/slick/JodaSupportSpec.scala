@@ -224,6 +224,35 @@ abstract class JodaSupportSpec extends AnyFunSpec
     res2.lift(1).map(_.localDate) should not be Some(new LocalDate(2012, 12, 5))
     res2.lift(2).map(_.localDate) should not be Some(new LocalDate(2012, 12, 5))
   }
+
+  Seq("Asia/Tokyo", "UTC", "Europe/London", "America/New_York").foreach { tz =>
+    val timeZone = DateTimeZone.forID(tz)
+    it(s"should be the same in/out joda-time zoned $tz") {
+      val otherZonedDateTime = new DateTime(2012, 12, 7, 0, 0, 0, 0, timeZone)
+      val data = Jodas(
+        DateTimeZone.forID("Asia/Tokyo"),
+        new LocalDate(2012, 12, 7),
+        otherZonedDateTime,
+        new DateTime(2012, 12, 7, 0, 0, 0, 0, DateTimeZone.UTC).toInstant,
+        new LocalDateTime(2012, 12, 7, 0, 0, 0, 0),
+        new LocalTime(1000),
+        None,
+        None,
+        None,
+        None,
+        None,
+        None
+      )
+      db.run(jodaTest += data).await()
+
+      val actual = db.run(jodaTest.result).await()
+      actual should have size 1
+
+      actual.foreach { d =>
+        d.dateTime.getMillis should be(data.dateTime.getMillis)
+      }
+    }
+  }
 }
 
 class H2JodaSupportSpec extends JodaSupportSpec {
@@ -249,6 +278,15 @@ class MySQLJodaSupportSpec extends TestContainerSpec {
   override def jdbcDriver = "com.mysql.jdbc.Driver"
   override val driver = MySQLProfile
   override val jodaSupport = MySQLJodaSupport
+}
+
+class MySQLJodaSupportWithoutCalenderSpec extends TestContainerSpec {
+  // TODO update 5.7 or later
+  // `.schema.create` does not work due to timestamp default value issue
+  override val container = MySQLContainer(mysqlImageVersion = DockerImageName.parse("mysql:5.6.50"))
+  override def jdbcDriver = "com.mysql.jdbc.Driver"
+  override val driver = MySQLProfile
+  override val jodaSupport = new GenericJodaSupport(MySQLProfile, _ => None)
 }
 
 class PostgresJodaSupportSpec extends TestContainerSpec {
