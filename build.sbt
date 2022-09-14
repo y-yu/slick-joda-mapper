@@ -2,7 +2,7 @@ import sbt._
 import sbt.Keys._
 import scalariform.formatter.preferences._
 
-def testContainerVersion = "1.15.0"
+def testContainerVersion = "1.15.2"
 
 lazy val `slick-joda-mapper` = project.in(file("."))
   .settings(scalariformSettings)
@@ -10,22 +10,48 @@ lazy val `slick-joda-mapper` = project.in(file("."))
   .settings(
     name := "slick-joda-mapper",
     organization := "com.github.tototoshi",
-    version := "2.4.2",
-    crossScalaVersions ++= Seq("2.11.12", "2.12.12", "2.13.4"),
-    scalaVersion := "2.12.12",
-    scalacOptions ++= Seq("-deprecation", "-language:_"),
+    version := "2.6.0",
+    crossScalaVersions := Seq("2.11.12", "2.12.16", "2.13.8", "3.1.3"),
+    scalaVersion := "2.13.8",
+    scalacOptions ++= Seq(
+      "-deprecation",
+      "-feature",
+      "-language:reflectiveCalls",
+      "-language:implicitConversions",
+    ),
+    scalacOptions ++= {
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((3, _)) =>
+          Seq(
+            "-source",
+            "3.0-migration",
+          )
+        case _ =>
+          Nil
+      }
+    },
+    Test / sources := {
+      if (scalaBinaryVersion.value == "3") {
+        val exclude = Set(
+          "JodaSupportSpec.scala" // TODO slick macro
+        )
+        (Test / sources).value.filterNot(x => exclude(x.getName))
+      } else {
+        (Test / sources).value
+      }
+    },
     libraryDependencies ++= Seq(
-      "joda-time" % "joda-time" % "2.10.8" % "provided",
-      "org.joda" % "joda-convert" % "2.2.1" % "provided",
-      "com.h2database" % "h2" % "[1.4,)" % "test",
-      "com.dimafeng" %% "testcontainers-scala" % "0.38.7" % "test",
-      "mysql" % "mysql-connector-java" % "5.1.49" % "test",
-      "org.postgresql" % "postgresql" % "9.4.1212" % "test",
+      "joda-time" % "joda-time" % "2.10.14" % "provided",
+      "org.joda" % "joda-convert" % "2.2.2" % "provided",
+      "com.h2database" % "h2" % "2.1.214" % "test",
+      "com.dimafeng" %% "testcontainers-scala" % "0.40.10" % "test",
+      "mysql" % "mysql-connector-java" % "8.0.30" % "test",
+      "org.postgresql" % "postgresql" % "42.5.0" % "test",
       "org.testcontainers" % "mysql" % testContainerVersion % "test",
       "org.testcontainers" % "postgresql" % testContainerVersion % "test",
-      "org.slf4j" % "slf4j-simple" % "1.7.30" % "test",
-      "org.scalatest" %% "scalatest" % "3.2.3" % "test",
-      "com.typesafe.slick" %% "slick" % "3.3.3" % "provided"
+      "org.slf4j" % "slf4j-simple" % "1.7.36" % "test",
+      "org.scalatest" %% "scalatest" % "3.2.13" % "test",
+      "com.typesafe.slick" %% "slick" % "3.3.3" % "provided" cross CrossVersion.for3Use2_13
     ),
     initialCommands += """
       import org.joda.time._
@@ -43,7 +69,7 @@ lazy val scalariformSettings = Seq(
 lazy val publishingSettings = Seq(
   publishMavenStyle := true,
   publishTo := _publishTo(version.value),
-  publishArtifact in Test := false,
+  Test / publishArtifact := false,
   pomExtra := _pomExtra
 )
 
